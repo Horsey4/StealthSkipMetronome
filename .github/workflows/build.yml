@@ -1,0 +1,32 @@
+name: Build
+on:
+  push:
+    tags:
+    - '*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v5
+    - uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: '8.0.x'
+    - run: dotnet publish StealthSkipMetronome.csproj -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true -o output
+    - run: |
+        mkdir release
+        copy output\StealthSkipMetronome.exe release
+        copy strong_beat.wav release
+        copy beat.wav release
+        powershell Compress-Archive -Path release -DestinationPath release.zip
+    - uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.ref_name }}
+        name: ${{ github.ref_name }}
+        files: release.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
